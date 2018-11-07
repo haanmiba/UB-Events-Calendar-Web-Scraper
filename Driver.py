@@ -1,25 +1,32 @@
 import sys
-from Utility import get_driver_path
+from Utility import get_driver_path, InvalidConfigFileTypeError
 from UBEventsCalendarScraper import UBEventsCalendarScraper
 from selenium.common.exceptions import WebDriverException
 from urllib3.exceptions import MaxRetryError
 
 
 def main():
-    path = get_driver_path()
-
+    exit_code = 0
     try:
+        path = get_driver_path()
         scraper = UBEventsCalendarScraper(path)
         scraper.load_page()
         events = scraper.get_events()
         for event in events:
             print(event)
-    except WebDriverException as e:
+    except InvalidConfigFileTypeError as e:
         print(str(e))
-        sys.exit()
+        exit_code = 1
+    except WebDriverException as e:
+        scraper.quit()
+        print(str(e))
+        exit_code = 1
     except MaxRetryError:
-        print('Failed to establish a new connection.')
-        sys.exit()
+        scraper.quit()
+        print('Failed to establish a new connection. Check network.')
+        exit_code = 2
+    finally:
+        sys.exit(exit_code)
 
 
 if __name__ == '__main__':

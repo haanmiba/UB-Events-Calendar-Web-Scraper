@@ -1,8 +1,12 @@
 import sys
 import re
+import json
+from configparser import ConfigParser
 from datetime import datetime, timedelta
 from pytz import timezone
 
+
+ALLOWED_CONFIG_FILE_TYPES = {'ini', 'txt', 'json'}
 
 PROMPT = 'Input the file path to the text file storing the path to the driver.'
 START_END_REGEX = r'(Starts|Ends):'
@@ -11,14 +15,33 @@ DATE_REGEX = r'(0?\d|1[0-2])/(0?\d|[12]\d|3[01])/([12]\d{3})'
 TIME_REGEX = r'(0?[0-9]|1[0-2]):([0-5][0-9])(:[0-5][0-9])?\s?[AP]\.?M\.?'
 
 
+class InvalidConfigFileTypeError(Exception):
+    pass
+
+
 def get_driver_path():
     driver_path_file = sys.argv[1] if len(sys.argv) > 1 else input(PROMPT)
+    path_file_extension = driver_path_file.rsplit('.')[-1].lower()
+
+    if path_file_extension not in ALLOWED_CONFIG_FILE_TYPES:
+        raise InvalidConfigFileTypeError("`.{}` is not a valid config file extension. Allowed file types are: {}"
+                                         .format(path_file_extension,
+                                                 ', '.join(map(lambda s: '`.' + s + '`', ALLOWED_CONFIG_FILE_TYPES))))
     try:
-        with open(driver_path_file) as f:
-            return f.readline()
+        if path_file_extension == 'ini':
+            config = ConfigParser()
+            config.read(driver_path_file)
+            return config['chromedriver']['path']
+        if path_file_extension == 'json':
+            with open(driver_path_file) as f:
+                data = json.load(f)
+                return data['path']
+        if path_file_extension == 'txt':
+            with open(driver_path_file) as f:
+                return f.readline()
     except FileNotFoundError as err:
         print(str(err))
-        sys.exit()
+        sys.exit(1)
 
 
 def extract_date_time(raw_date_time, tz):
@@ -52,7 +75,7 @@ def extract_date_time(raw_date_time, tz):
         end_date = start_date
 
     if not end_time:
-        end_time = start_time + timedelta(hours=1)
+        end_time = start_time + timedelta(hours=2)
 
     start = datetime.combine(start_date.date(), start_time.time())
     end = datetime.combine(end_date.date(), end_time.time())
