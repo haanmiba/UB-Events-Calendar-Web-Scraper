@@ -2,3 +2,5 @@
 .DS_Store
 chrome-driver-path.txt
 chromedriver
+__pycache__/
+*.pyc
