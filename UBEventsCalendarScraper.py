@@ -16,6 +16,7 @@ class UBEventsCalendarScraper(Scraper):
     def get_events(self, num_pages=1, all_events=False):
         if not self.page_loaded:
             self.load_page()
+
         current_page = 0
         while True:
             event_elements = self.browser.find_elements_by_class_name('list-event-preview')
