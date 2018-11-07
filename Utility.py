@@ -1,12 +1,13 @@
 import sys
 import re
 import json
+import yaml
 from configparser import ConfigParser
 from datetime import datetime, timedelta
 from pytz import timezone
 
 
-ALLOWED_CONFIG_FILE_TYPES = {'ini', 'txt', 'json'}
+ALLOWED_CONFIG_FILE_TYPES = {'ini', 'json', 'yaml', 'yml'}
 
 PROMPT = 'Input the file path to the text file storing the path to the driver.'
 START_END_REGEX = r'(Starts|Ends):'
@@ -27,20 +28,28 @@ def get_driver_path():
         raise InvalidConfigFileTypeError("`.{}` is not a valid config file extension. Allowed file types are: {}"
                                          .format(path_file_extension,
                                                  ', '.join(map(lambda s: '`.' + s + '`', ALLOWED_CONFIG_FILE_TYPES))))
+
     try:
         if path_file_extension == 'ini':
             config = ConfigParser()
             config.read(driver_path_file)
             return config['chromedriver']['path']
+
         if path_file_extension == 'json':
             with open(driver_path_file) as f:
                 data = json.load(f)
-                return data['path']
-        if path_file_extension == 'txt':
+                return data['chromedriver']['path']
+
+        if path_file_extension in {'yaml', 'yml'}:
             with open(driver_path_file) as f:
-                return f.readline()
-    except FileNotFoundError as err:
-        print(str(err))
+                data = yaml.load(f)
+                return data['chromedriver']['path']
+
+    except FileNotFoundError as e:
+        print(str(e))
+        sys.exit(1)
+    except KeyError as e:
+        print('Missing Key: {}'.format(e))
         sys.exit(1)
 
 

@@ -5,6 +5,10 @@ from selenium.common.exceptions import WebDriverException
 from urllib3.exceptions import MaxRetryError
 
 
+USAGE_STR = '''usage: python Driver.py --config <path>
+usage: python Driver.py --path <driver_path> ([<last_page> | <first_page> <last_page> | --all]) (<output_path>)'''
+
+
 def main():
     exit_code = 0
     try:
