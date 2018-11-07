@@ -18,7 +18,7 @@ class UBEventsCalendarScraper(Scraper):
             self.load_page()
 
         current_page = 0
-        while True:
+        while current_page < num_pages or all_events:
             event_elements = self.browser.find_elements_by_class_name('list-event-preview')
             for event_elem in event_elements:
                 header = event_elem.find_element_by_xpath('.//h3/a')
@@ -28,19 +28,14 @@ class UBEventsCalendarScraper(Scraper):
                 ev = Event(header.text, header.get_attribute('href'), start, end)
                 self.event_list.append(ev)
 
-            if not all_events:
-                current_page += 1
-
             if not self.next_page_button_exists():
-                break
-
-            if current_page == num_pages:
                 break
 
             button = self.get_next_page_button()
             button.click()
             wait = WebDriverWait(self.browser, self.timeout)
             wait.until(EC.presence_of_element_located((By.CLASS_NAME, 'list-event')))
+            current_page += 1
 
         return self.event_list
 

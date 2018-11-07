@@ -23,7 +23,7 @@ def main():
         exit_code = 1
     except MaxRetryError:
         scraper.quit()
-        print('Failed to establish a new connection. Check network.')
+        print('Failed to establish a new connection with https://calendar.buffalo.edu/. Check network connection.')
         exit_code = 2
     finally:
         sys.exit(exit_code)
