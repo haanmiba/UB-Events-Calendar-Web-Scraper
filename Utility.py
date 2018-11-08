@@ -1,14 +1,15 @@
 import sys
 import re
 import json
-import yaml
+# import yaml
 import xml.etree.ElementTree as ET
 from configparser import ConfigParser
 from datetime import datetime, timedelta
 from pytz import timezone
+from Configuration import Configuration
 
 
-ALLOWED_CONFIG_FILE_TYPES = {'cfg', 'ini', 'json', 'xml', 'yaml', 'yml'}
+ALLOWED_CONFIG_FILE_TYPES = {'cfg', 'conf', 'config', 'ini', 'json', 'xml', 'yaml', 'yml'}
 
 PROMPT = 'Input the file path to the text file storing the path to the driver.'
 START_END_REGEX = r'(Starts|Ends):'
@@ -31,7 +32,7 @@ def get_driver_path():
                                                  ', '.join(map(lambda s: '`.' + s + '`', ALLOWED_CONFIG_FILE_TYPES))))
 
     try:
-        if path_file_extension in {'cfg', 'ini'}:
+        if path_file_extension in {'cfg', 'conf', 'config', 'ini'}:
             config = ConfigParser()
             config.read(driver_path_file)
             return config['chromedriver']['path']
@@ -49,13 +50,17 @@ def get_driver_path():
         if path_file_extension == 'xml':
             tree = ET.parse(driver_path_file)
             root = tree.getroot()
+
             chromedriver_path = root.find('chromedriver').find('path').text
-            start_page = root.find('settings').find('start_page').text
-            end_page = root.find('settings').find('end_page').text
-            all_pages = root.find('settings').find('all_pages').text
+            start_page = int(root.find('settings').find('start_page').text)
+            end_page = int(root.find('settings').find('end_page').text)
+            all_pages = root.find('settings').find('all_pages').text.lower()
             output = root.find('settings').find('output').text
             output_path = root.find('settings').find('output_path').text
             output_mode = root.find('settings').find('output_mode').text
+
+            c = Configuration(chromedriver_path, start_page, end_page, all_pages, output, output_path, output_mode)
+
             return chromedriver_path
 
     except FileNotFoundError as e:
