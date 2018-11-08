@@ -3,6 +3,7 @@ import re
 import json
 # import yaml
 import xml.etree.ElementTree as ET
+from exceptions import InvalidConfigFileTypeError, InvalidConfigFileValueError
 from xml.etree.ElementTree import Element
 from configparser import ConfigParser, SectionProxy
 from datetime import datetime, timedelta
@@ -21,15 +22,7 @@ DATE_REGEX = r'(0?\d|1[0-2])/(0?\d|[12]\d|3[01])/([12]\d{3})'
 TIME_REGEX = r'(0?[0-9]|1[0-2]):([0-5][0-9])(:[0-5][0-9])?\s?[AP]\.?M\.?'
 
 
-class InvalidConfigFileTypeError(Exception):
-    pass
-
-
-class InvalidConfigFileValueError(Exception):
-    pass
-
-
-def eval_config_file_value(text_value):
+def eval_config_file_boolean(text_value):
     parsed_value = None
     if text_value.strip().lower() in ALLOWED_TRUE_STRINGS:
         parsed_value = True
@@ -65,12 +58,12 @@ def parse_config_file(parser, func_list):
     all_pages = get_nested_elem(parser, func_list, ['settings', 'all_pages'])
     if not isinstance(all_pages, (str, unicode)):
         all_pages = all_pages.text
-    all_pages = eval_config_file_value(all_pages)
+    all_pages = eval_config_file_boolean(all_pages)
 
     output = get_nested_elem(parser, func_list, ['settings', 'output'])
     if not isinstance(output, (str, unicode)):
         output = output.text
-    output = eval_config_file_value(output)
+    output = eval_config_file_boolean(output)
 
     output_path = get_nested_elem(parser, func_list, ['settings', 'output_path'])
     if not isinstance(output_path, (str, unicode)):
