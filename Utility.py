@@ -2,12 +2,13 @@ import sys
 import re
 import json
 import yaml
+import xml.etree.ElementTree as ET
 from configparser import ConfigParser
 from datetime import datetime, timedelta
 from pytz import timezone
 
 
-ALLOWED_CONFIG_FILE_TYPES = {'ini', 'json', 'yaml', 'yml'}
+ALLOWED_CONFIG_FILE_TYPES = {'ini', 'json', 'xml', 'yaml', 'yml'}
 
 PROMPT = 'Input the file path to the text file storing the path to the driver.'
 START_END_REGEX = r'(Starts|Ends):'
@@ -44,6 +45,18 @@ def get_driver_path():
             with open(driver_path_file) as f:
                 data = yaml.load(f)
                 return data['chromedriver']['path']
+
+        if path_file_extension == 'xml':
+            tree = ET.parse(driver_path_file)
+            root = tree.getroot()
+            chromedriver_path = root.find('chromedriver').find('path').text
+            start_page = root.find('settings').find('start_page').text
+            end_page = root.find('settings').find('end_page').text
+            all_pages = root.find('settings').find('all_pages').text
+            output = root.find('settings').find('output').text
+            output_path = root.find('settings').find('output_path').text
+            output_mode = root.find('settings').find('output_mode').text
+            return chromedriver_path
 
     except FileNotFoundError as e:
         print(str(e))
