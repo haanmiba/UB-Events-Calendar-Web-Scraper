@@ -3,13 +3,16 @@ import re
 import json
 # import yaml
 import xml.etree.ElementTree as ET
-from configparser import ConfigParser
+from xml.etree.ElementTree import Element
+from configparser import ConfigParser, SectionProxy
 from datetime import datetime, timedelta
 from pytz import timezone
 from Configuration import Configuration
 
 
 ALLOWED_CONFIG_FILE_TYPES = {'cfg', 'conf', 'config', 'ini', 'json', 'xml', 'yaml', 'yml'}
+ALLOWED_TRUE_STRINGS = {'true', 't', 'yes', 'y'}
+ALLOWED_FALSE_STRINGS = {'false', 'f', 'no', 'n'}
 
 PROMPT = 'Input the file path to the text file storing the path to the driver.'
 START_END_REGEX = r'(Starts|Ends):'
@@ -22,50 +25,99 @@ class InvalidConfigFileTypeError(Exception):
     pass
 
 
-def get_driver_path():
-    driver_path_file = sys.argv[1] if len(sys.argv) > 1 else input(PROMPT)
-    path_file_extension = driver_path_file.rsplit('.')[-1].lower()
+class InvalidConfigFileValueError(Exception):
+    pass
 
-    if path_file_extension not in ALLOWED_CONFIG_FILE_TYPES:
+
+def eval_config_file_value(text_value):
+    parsed_value = None
+    if text_value.strip().lower() in ALLOWED_TRUE_STRINGS:
+        parsed_value = True
+    elif text_value.strip().lower() in ALLOWED_FALSE_STRINGS:
+        parsed_value = False
+    else:
+        raise InvalidConfigFileValueError('`{}` is not a valid value for the config file'.format(text_value))
+    return parsed_value
+
+
+def get_nested_elem(parser, func_list, key_list):
+    elem = parser
+    for func, key in zip(func_list, key_list):
+        elem = func(elem, key)
+    return elem
+
+
+def parse_config_file(parser, func_list):
+    chromedriver_path = get_nested_elem(parser, func_list, ['chromedriver', 'path'])
+    if not isinstance(chromedriver_path, (str, unicode)):
+        chromedriver_path = chromedriver_path.text
+
+    start_page = get_nested_elem(parser, func_list, ['settings', 'start_page'])
+    if not isinstance(start_page, (str, unicode, int)):
+        start_page = start_page.text
+    start_page = int(start_page)
+
+    end_page = get_nested_elem(parser, func_list, ['settings', 'end_page'])
+    if not isinstance(end_page, (str, unicode, int)):
+        end_page = end_page.text
+    end_page = int(end_page)
+
+    all_pages = get_nested_elem(parser, func_list, ['settings', 'all_pages'])
+    if not isinstance(all_pages, (str, unicode)):
+        all_pages = all_pages.text
+    all_pages = eval_config_file_value(all_pages)
+
+    output = get_nested_elem(parser, func_list, ['settings', 'output'])
+    if not isinstance(output, (str, unicode)):
+        output = output.text
+    output = eval_config_file_value(output)
+
+    output_path = get_nested_elem(parser, func_list, ['settings', 'output_path'])
+    if not isinstance(output_path, (str, unicode)):
+        output_path = output_path.text
+
+    output_mode = get_nested_elem(parser, func_list, ['settings', 'output_mode'])
+    if not isinstance(output_mode, (str, unicode)):
+        output_mode = output_mode.text
+
+    c = Configuration(chromedriver_path, start_page, end_page, all_pages, output, output_path, output_mode)
+    return c
+
+
+def read_config_file():
+    config_file_path = sys.argv[1] if len(sys.argv) > 1 else input(PROMPT)
+    file_extension = config_file_path.rsplit('.')[-1].lower()
+
+    if file_extension not in ALLOWED_CONFIG_FILE_TYPES:
         raise InvalidConfigFileTypeError("`.{}` is not a valid config file extension. Allowed file types are: {}"
-                                         .format(path_file_extension,
+                                         .format(file_extension,
                                                  ', '.join(map(lambda s: '`.' + s + '`', ALLOWED_CONFIG_FILE_TYPES))))
 
     try:
-        if path_file_extension in {'cfg', 'conf', 'config', 'ini'}:
-            config = ConfigParser()
-            config.read(driver_path_file)
-            return config['chromedriver']['path']
+        if file_extension in {'cfg', 'conf', 'config', 'ini'}:
+            ini_parser = ConfigParser()
+            ini_parser.read(config_file_path)
+            return parse_config_file(ini_parser, [ConfigParser.__getitem__, SectionProxy.__getitem__])
 
-        if path_file_extension == 'json':
-            with open(driver_path_file) as f:
-                data = json.load(f)
-                return data['chromedriver']['path']
+        if file_extension == 'json':
+            with open(config_file_path) as f:
+                json_parser = json.load(f)
+                return parse_config_file(json_parser, [dict.__getitem__] * 2)
 
-        if path_file_extension in {'yaml', 'yml'}:
-            with open(driver_path_file) as f:
-                data = yaml.load(f)
-                return data['chromedriver']['path']
+        if file_extension in {'yaml', 'yml'}:
+            with open(config_file_path) as f:
+                yaml_parser = yaml.load(f)
+                return parse_config_file(yaml_parser, [dict.__getitem__] * 2)
 
-        if path_file_extension == 'xml':
-            tree = ET.parse(driver_path_file)
+        if file_extension == 'xml':
+            tree = ET.parse(config_file_path)
             root = tree.getroot()
-
-            chromedriver_path = root.find('chromedriver').find('path').text
-            start_page = int(root.find('settings').find('start_page').text)
-            end_page = int(root.find('settings').find('end_page').text)
-            all_pages = root.find('settings').find('all_pages').text.lower()
-            output = root.find('settings').find('output').text
-            output_path = root.find('settings').find('output_path').text
-            output_mode = root.find('settings').find('output_mode').text
-
-            c = Configuration(chromedriver_path, start_page, end_page, all_pages, output, output_path, output_mode)
-
-            return chromedriver_path
+            return parse_config_file(root, [Element.find] * 2)
 
     except FileNotFoundError as e:
         print(str(e))
         sys.exit(1)
+
     except KeyError as e:
         print('Missing Key: {}'.format(e))
         sys.exit(1)
