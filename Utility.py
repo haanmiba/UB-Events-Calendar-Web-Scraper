@@ -8,7 +8,7 @@ from datetime import datetime, timedelta
 from pytz import timezone
 
 
-ALLOWED_CONFIG_FILE_TYPES = {'ini', 'json', 'xml', 'yaml', 'yml'}
+ALLOWED_CONFIG_FILE_TYPES = {'cfg', 'ini', 'json', 'xml', 'yaml', 'yml'}
 
 PROMPT = 'Input the file path to the text file storing the path to the driver.'
 START_END_REGEX = r'(Starts|Ends):'
@@ -31,7 +31,7 @@ def get_driver_path():
                                                  ', '.join(map(lambda s: '`.' + s + '`', ALLOWED_CONFIG_FILE_TYPES))))
 
     try:
-        if path_file_extension == 'ini':
+        if path_file_extension in {'cfg', 'ini'}:
             config = ConfigParser()
             config.read(driver_path_file)
             return config['chromedriver']['path']
