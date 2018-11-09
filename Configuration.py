@@ -7,4 +7,5 @@ class Configuration:
         self.all_pages = all_pages
         self.output = output
         self.output_path = output_path
+        self.output_extension = output_path.rsplit(',', 1)[-1].lower()
         self.output_mode = output_mode
