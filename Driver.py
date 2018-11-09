@@ -1,6 +1,5 @@
 import sys
-from Utility import read_config_file
-from exceptions import InvalidConfigFileTypeError, InvalidConfigFileValueError
+from Utility import read_config_file, InvalidConfigFileTypeError, InvalidConfigFileValueError
 from UBEventsCalendarScraper import UBEventsCalendarScraper
 from selenium.common.exceptions import WebDriverException
 from urllib3.exceptions import MaxRetryError
@@ -18,7 +17,12 @@ def main():
         scraper.load_page()
         events = scraper.get_events()
         for event in events:
-            print(event)
+            try:
+                print(event.__repr__().encode('utf-8'))
+            except UnicodeEncodeError:
+                pass
+    except UnicodeEncodeError as e:
+        print(str(e))
     except (InvalidConfigFileTypeError, InvalidConfigFileValueError) as e:
         print(str(e))
         exit_code = 1

@@ -3,7 +3,6 @@ import re
 import json
 # import yaml
 import xml.etree.ElementTree as ET
-from exceptions import InvalidConfigFileTypeError, InvalidConfigFileValueError
 from xml.etree.ElementTree import Element
 from configparser import ConfigParser, SectionProxy
 from datetime import datetime, timedelta
@@ -22,15 +21,21 @@ DATE_REGEX = r'(0?\d|1[0-2])/(0?\d|[12]\d|3[01])/([12]\d{3})'
 TIME_REGEX = r'(0?[0-9]|1[0-2]):([0-5][0-9])(:[0-5][0-9])?\s?[AP]\.?M\.?'
 
 
+class InvalidConfigFileTypeError(Exception):
+    pass
+
+
+class InvalidConfigFileValueError(Exception):
+    pass
+
+
 def eval_config_file_boolean(text_value):
-    parsed_value = None
     if text_value.strip().lower() in ALLOWED_TRUE_STRINGS:
-        parsed_value = True
+        return True
     elif text_value.strip().lower() in ALLOWED_FALSE_STRINGS:
-        parsed_value = False
+        return False
     else:
         raise InvalidConfigFileValueError('`{}` is not a valid value for the config file'.format(text_value))
-    return parsed_value
 
 
 def get_nested_elem(parser, func_list, key_list):
