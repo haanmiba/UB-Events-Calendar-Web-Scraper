@@ -13,7 +13,7 @@ def main():
     exit_code = 0
     try:
         config = read_config_file()
-        scraper = UBEventsCalendarScraper(config.chromedriver_path)
+        scraper = UBEventsCalendarScraper(config)
         scraper.load_page()
         events = scraper.get_events()
         for event in events:

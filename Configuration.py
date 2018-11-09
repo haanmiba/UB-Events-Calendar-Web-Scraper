@@ -1,6 +1,6 @@
 class Configuration:
 
-    def __init__(self, path, start_page, end_page, all_pages, output, output_path, output_mode):
+    def __init__(self, path, start_page, end_page, all_pages, output, output_path):
         self.chromedriver_path = path
         self.start_page = start_page
         self.end_page = end_page
@@ -8,4 +8,3 @@ class Configuration:
         self.output = output
         self.output_path = output_path
         self.output_extension = output_path.rsplit(',', 1)[-1].lower()
-        self.output_mode = output_mode

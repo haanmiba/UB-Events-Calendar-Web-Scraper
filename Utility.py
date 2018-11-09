@@ -54,9 +54,8 @@ def parse_config_file(parser, func_list, file_ext):
     all_pages = get_nested_elem(parser, func_list, ['settings', 'all_pages'], file_ext, eval_config_file_boolean)
     output = get_nested_elem(parser, func_list, ['settings', 'output'], file_ext, eval_config_file_boolean)
     output_path = get_nested_elem(parser, func_list, ['settings', 'output_path'], file_ext, str)
-    output_mode = get_nested_elem(parser, func_list, ['settings', 'output_mode'], file_ext, str)
 
-    c = Configuration(chromedriver_path, start_page, end_page, all_pages, output, output_path, output_mode)
+    c = Configuration(chromedriver_path, start_page, end_page, all_pages, output, output_path)
     return c
 
 

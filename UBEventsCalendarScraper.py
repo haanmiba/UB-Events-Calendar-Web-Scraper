@@ -9,8 +9,9 @@ from selenium.common.exceptions import NoSuchElementException
 
 class UBEventsCalendarScraper(Scraper):
 
-    def __init__(self, driver_path, url='https://calendar.buffalo.edu/', timeout=10):
-        Scraper.__init__(self, driver_path, url, element='list-event', timeout=timeout)
+    def __init__(self, config):
+        Scraper.__init__(self, config.chromedriver_path, 'https://calendar.buffalo.edu/', element='list-event')
+        self.config = config
         self.event_list = []
 
     def get_events(self, num_pages=1, all_events=False):
