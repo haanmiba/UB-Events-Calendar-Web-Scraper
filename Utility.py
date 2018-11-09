@@ -1,7 +1,7 @@
 import sys
 import re
 import json
-# import yaml
+# import yml
 import xml.etree.ElementTree as ET
 from xml.etree.ElementTree import Element
 from configparser import ConfigParser, SectionProxy
@@ -38,45 +38,23 @@ def eval_config_file_boolean(text_value):
         raise InvalidConfigFileValueError('`{}` is not a valid value for the config file'.format(text_value))
 
 
-def get_nested_elem(parser, func_list, key_list):
+def get_nested_elem(parser, func_list, key_list, file_ext, cast):
     elem = parser
     for func, key in zip(func_list, key_list):
         elem = func(elem, key)
-    return elem
+    if file_ext == 'xml':
+        elem = elem.text
+    return cast(elem)
 
 
-def parse_config_file(parser, func_list):
-    chromedriver_path = get_nested_elem(parser, func_list, ['chromedriver', 'path'])
-    if not isinstance(chromedriver_path, (str, unicode)):
-        chromedriver_path = chromedriver_path.text
-
-    start_page = get_nested_elem(parser, func_list, ['settings', 'start_page'])
-    if not isinstance(start_page, (str, unicode, int)):
-        start_page = start_page.text
-    start_page = int(start_page)
-
-    end_page = get_nested_elem(parser, func_list, ['settings', 'end_page'])
-    if not isinstance(end_page, (str, unicode, int)):
-        end_page = end_page.text
-    end_page = int(end_page)
-
-    all_pages = get_nested_elem(parser, func_list, ['settings', 'all_pages'])
-    if not isinstance(all_pages, (str, unicode)):
-        all_pages = all_pages.text
-    all_pages = eval_config_file_boolean(all_pages)
-
-    output = get_nested_elem(parser, func_list, ['settings', 'output'])
-    if not isinstance(output, (str, unicode)):
-        output = output.text
-    output = eval_config_file_boolean(output)
-
-    output_path = get_nested_elem(parser, func_list, ['settings', 'output_path'])
-    if not isinstance(output_path, (str, unicode)):
-        output_path = output_path.text
-
-    output_mode = get_nested_elem(parser, func_list, ['settings', 'output_mode'])
-    if not isinstance(output_mode, (str, unicode)):
-        output_mode = output_mode.text
+def parse_config_file(parser, func_list, file_ext):
+    chromedriver_path = get_nested_elem(parser, func_list, ['chromedriver', 'path'], file_ext, str)
+    start_page = get_nested_elem(parser, func_list, ['settings', 'start_page'], file_ext, int)
+    end_page = get_nested_elem(parser, func_list, ['settings', 'end_page'], file_ext, int)
+    all_pages = get_nested_elem(parser, func_list, ['settings', 'all_pages'], file_ext, eval_config_file_boolean)
+    output = get_nested_elem(parser, func_list, ['settings', 'output'], file_ext, eval_config_file_boolean)
+    output_path = get_nested_elem(parser, func_list, ['settings', 'output_path'], file_ext, str)
+    output_mode = get_nested_elem(parser, func_list, ['settings', 'output_mode'], file_ext, str)
 
     c = Configuration(chromedriver_path, start_page, end_page, all_pages, output, output_path, output_mode)
     return c
@@ -95,22 +73,22 @@ def read_config_file():
         if file_extension in {'cfg', 'conf', 'config', 'ini'}:
             ini_parser = ConfigParser()
             ini_parser.read(config_file_path)
-            return parse_config_file(ini_parser, [ConfigParser.__getitem__, SectionProxy.__getitem__])
+            return parse_config_file(ini_parser, [ConfigParser.__getitem__, SectionProxy.__getitem__], file_extension)
 
         if file_extension == 'json':
             with open(config_file_path) as f:
                 json_parser = json.load(f)
-                return parse_config_file(json_parser, [dict.__getitem__] * 2)
+                return parse_config_file(json_parser, [dict.__getitem__] * 2, file_extension)
 
         if file_extension in {'yaml', 'yml'}:
             with open(config_file_path) as f:
                 yaml_parser = yaml.load(f)
-                return parse_config_file(yaml_parser, [dict.__getitem__] * 2)
+                return parse_config_file(yaml_parser, [dict.__getitem__] * 2, file_extension)
 
         if file_extension == 'xml':
             tree = ET.parse(config_file_path)
             root = tree.getroot()
-            return parse_config_file(root, [Element.find] * 2)
+            return parse_config_file(root, [Element.find] * 2, file_extension)
 
     except FileNotFoundError as e:
         print(str(e))
