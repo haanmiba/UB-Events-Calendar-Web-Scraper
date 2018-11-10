@@ -50,13 +50,14 @@ def get_nested_elem(parser, func_list, key_list, file_ext, cast):
 def parse_config_file(parser, func_list, file_ext):
     chromedriver_path = get_nested_elem(parser, func_list, ['chromedriver', 'path'], file_ext, str)
     headless = get_nested_elem(parser, func_list, ['chromedriver', 'headless'], file_ext, eval_config_file_boolean)
-    start_page = get_nested_elem(parser, func_list, ['settings', 'start_page'], file_ext, int)
+    deep_scrape = get_nested_elem(parser, func_list, ['settings', 'deep_scrape'], file_ext, eval_config_file_boolean)
+    start_page = get_nested_elem(parser, func_list, ['settings', 'start_page'], file_ext, int) - 1
     end_page = get_nested_elem(parser, func_list, ['settings', 'end_page'], file_ext, int)
     all_pages = get_nested_elem(parser, func_list, ['settings', 'all_pages'], file_ext, eval_config_file_boolean)
     output = get_nested_elem(parser, func_list, ['settings', 'output'], file_ext, eval_config_file_boolean)
     output_path = get_nested_elem(parser, func_list, ['settings', 'output_path'], file_ext, str)
 
-    c = Configuration(chromedriver_path, headless, start_page, end_page, all_pages, output, output_path)
+    c = Configuration(chromedriver_path, headless, deep_scrape, start_page, end_page, all_pages, output, output_path)
     return c
 
 

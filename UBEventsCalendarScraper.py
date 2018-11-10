@@ -11,21 +11,47 @@ class UBEventsCalendarScraper(Scraper):
 
     def __init__(self, config):
         Scraper.__init__(self, config.chromedriver_path, config.headless)
-        Scraper.load_page(self, 'https://calendar.buffalo.edu/', 'list-event')
+        self.open_url('https://calendar.buffalo.edu/', 'list-event')
         self.config = config
         self.event_list = []
 
-    def get_events(self, num_pages=1, all_events=False):
+    def deep_scrape(self, evt):
+        self.open_url(evt.link, 'accordion-header-link', new_tab=True)
+        location_elems = self.browser.find_elements_by_xpath(".//section[@itemprop='location']/p")
+        if location_elems:
+            evt.location = location_elems[0].text
+
+        contact_elems = self.browser.find_elements_by_xpath(".//section[@class='event-detail-contact-person']/p")
+        if contact_elems:
+            evt.contact = contact_elems[0].text
+
+        description_elems = self.browser.find_elements_by_xpath(".//div[@itemprop='description']")
+        if description_elems:
+            evt.description = description_elems[0].text
+
+        additional_info_labels = self.browser.find_elements_by_xpath(".//div[@class='custom-field-label']")
+        additional_info_values = self.browser.find_elements_by_xpath(".//div[@class='custom-field-value']")
+        if additional_info_labels and additional_info_values:
+            evt.additional_info = {}
+            for label, value in zip(additional_info_labels, additional_info_values):
+                evt.additional_info[label.text] = value.text
+
+        self.close_tab()
+
+    def scrape_events(self):
         current_page = 0
-        while current_page < num_pages or all_events:
+        while self.config.start_page <= current_page < self.config.end_page or self.config.all_pages:
             event_elements = self.browser.find_elements_by_class_name('list-event-preview')
             for event_elem in event_elements:
                 header = event_elem.find_element_by_xpath('.//h3/a')
                 date_time = event_elem.find_element_by_xpath('.//p')
                 start, end = extract_date_time(date_time.text, tz='US/Eastern')
+                evt = Event(header.text, header.get_attribute('href'), start, end)
 
-                ev = Event(header.text, header.get_attribute('href'), start, end)
-                self.event_list.append(ev)
+                if self.config.deep_scrape:
+                    self.deep_scrape(evt)
+
+                self.event_list.append(evt)
 
             if not self.next_page_button_exists():
                 break
