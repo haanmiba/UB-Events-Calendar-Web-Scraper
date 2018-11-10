@@ -14,7 +14,7 @@ def main():
     try:
         config = read_config_file()
         scraper = UBEventsCalendarScraper(config)
-        events = scraper.get_events()
+        events = scraper.scrape_events()
         for event in events:
             try:
                 print(event.__repr__().encode('utf-8'))
