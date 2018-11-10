@@ -10,14 +10,12 @@ from selenium.common.exceptions import NoSuchElementException
 class UBEventsCalendarScraper(Scraper):
 
     def __init__(self, config):
-        Scraper.__init__(self, config.chromedriver_path, 'https://calendar.buffalo.edu/', element='list-event')
+        Scraper.__init__(self, config.chromedriver_path, config.headless)
+        Scraper.load_page(self, 'https://calendar.buffalo.edu/', 'list-event')
         self.config = config
         self.event_list = []
 
     def get_events(self, num_pages=1, all_events=False):
-        if not self.page_loaded:
-            self.load_page()
-
         current_page = 0
         while current_page < num_pages or all_events:
             event_elements = self.browser.find_elements_by_class_name('list-event-preview')
@@ -36,6 +34,7 @@ class UBEventsCalendarScraper(Scraper):
             button.click()
             wait = WebDriverWait(self.browser, self.timeout)
             wait.until(EC.presence_of_element_located((By.CLASS_NAME, 'list-event')))
+
             current_page += 1
 
         return self.event_list
