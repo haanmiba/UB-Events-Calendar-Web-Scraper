@@ -6,7 +6,7 @@ from urllib3.exceptions import MaxRetryError
 
 
 USAGE_STR = '''usage: python Driver.py --config <path>
-usage: python Driver.py --path <driver_path> ([<last_page> | <first_page> <last_page> | --all]) (<output_path>)'''
+usage: python Driver.py --path <driver_path> (--head) ([<last_page> | <first_page> <last_page> | --all]) (<output_path>)'''
 
 
 def main():
@@ -14,15 +14,12 @@ def main():
     try:
         config = read_config_file()
         scraper = UBEventsCalendarScraper(config)
-        scraper.load_page()
         events = scraper.get_events()
         for event in events:
             try:
                 print(event.__repr__().encode('utf-8'))
             except UnicodeEncodeError:
                 pass
-    except UnicodeEncodeError as e:
-        print(str(e))
     except (InvalidConfigFileTypeError, InvalidConfigFileValueError) as e:
         print(str(e))
         exit_code = 1
