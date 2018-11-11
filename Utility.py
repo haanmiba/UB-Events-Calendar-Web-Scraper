@@ -1,7 +1,7 @@
 import sys
 import re
 import json
-# import yml
+# import yaml
 import xml.etree.ElementTree as ET
 from xml.etree.ElementTree import Element
 from configparser import ConfigParser, SectionProxy
@@ -139,4 +139,20 @@ def extract_date_time(raw_date_time, tz):
     start_w_timezone = timezone(tz).localize(start)
     end_w_timezone = timezone(tz).localize(end)
 
-    return start_w_timezone, end_w_timezone
+    return start_w_timezone.strftime('%m/%d/%Y %I:%M %p %Z%z'), end_w_timezone.strftime('%m/%d/%Y %I:%M %p %Z%z')
+
+
+def print_event(evt):
+    print_str = evt.__str__()
+    for attr in ['location', 'contact', 'description']:
+        if attr in evt.__dict__:
+            print_str += '{}:\n{}\n\n'.format(' '.join(map(lambda x: x.capitalize(), re.split(' |_', attr))),
+                                              evt.__dict__[attr])
+    if 'additional_info' in evt.__dict__:
+        print_str += 'Additional Info:\n'
+        for label, value in evt.additional_info.items():
+            print_str += '  {}: {}\n'.format(label, value)
+    try:
+        print(print_str)
+    except UnicodeEncodeError:
+        pass

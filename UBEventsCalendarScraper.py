@@ -1,3 +1,4 @@
+import re
 from Event import Event
 from Scraper import Scraper
 from Utility import extract_date_time
@@ -17,6 +18,11 @@ class UBEventsCalendarScraper(Scraper):
 
     def deep_scrape(self, evt):
         self.open_url(evt.link, 'accordion-header-link', new_tab=True)
+
+        description_elems = self.browser.find_elements_by_xpath(".//div[@itemprop='description']")
+        if description_elems:
+            evt.description = description_elems[0].text
+
         location_elems = self.browser.find_elements_by_xpath(".//section[@itemprop='location']/p")
         if location_elems:
             evt.location = location_elems[0].text
@@ -25,16 +31,12 @@ class UBEventsCalendarScraper(Scraper):
         if contact_elems:
             evt.contact = contact_elems[0].text
 
-        description_elems = self.browser.find_elements_by_xpath(".//div[@itemprop='description']")
-        if description_elems:
-            evt.description = description_elems[0].text
-
         additional_info_labels = self.browser.find_elements_by_xpath(".//div[@class='custom-field-label']")
         additional_info_values = self.browser.find_elements_by_xpath(".//div[@class='custom-field-value']")
         if additional_info_labels and additional_info_values:
             evt.additional_info = {}
             for label, value in zip(additional_info_labels, additional_info_values):
-                evt.additional_info[label.text] = value.text
+                evt.additional_info[re.sub(':', '', label.text)] = value.text
 
         self.close_tab()
 
