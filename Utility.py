@@ -151,8 +151,6 @@ def print_event(evt):
     if 'additional_info' in evt.__dict__:
         print_str += 'Additional Info:\n'
         for label, value in evt.additional_info.items():
-            print_str += '  {}: {}\n'.format(label, value)
-    try:
-        print(print_str)
-    except UnicodeEncodeError:
-        pass
+            print_str += '  {:<{fill}} {}\n'.format(label+':', value, fill=max(map(len, evt.additional_info.keys()))+1)
+
+    print(print_str)
