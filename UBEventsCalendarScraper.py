@@ -1,7 +1,7 @@
 import re
 from Event import Event
 from Scraper import Scraper
-from Utility import extract_date_time
+from Utility import extract_date_time, extract_contact_info
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By
@@ -29,7 +29,7 @@ class UBEventsCalendarScraper(Scraper):
 
         contact_elems = self.browser.find_elements_by_xpath(".//section[@class='event-detail-contact-person']/p")
         if contact_elems:
-            evt.contact = contact_elems[0].text
+            evt.contact = extract_contact_info(contact_elems[0].text)
 
         additional_info_labels = self.browser.find_elements_by_xpath(".//div[@class='custom-field-label']")
         additional_info_values = self.browser.find_elements_by_xpath(".//div[@class='custom-field-value']")

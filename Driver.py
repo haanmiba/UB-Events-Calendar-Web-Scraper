@@ -1,6 +1,6 @@
 import sys
 import json
-from Utility import read_config_file, InvalidConfigFileTypeError, InvalidConfigFileValueError, print_event
+from Utility import read_config_file, InvalidConfigFileTypeError, InvalidConfigFileValueError, print_event, export_json
 from UBEventsCalendarScraper import UBEventsCalendarScraper
 from selenium.common.exceptions import WebDriverException
 from urllib3.exceptions import MaxRetryError
@@ -16,6 +16,7 @@ def main():
         config = read_config_file()
         scraper = UBEventsCalendarScraper(config)
         events = scraper.scrape_events()
+        export_json([evt.__dict__ for evt in events])
         for evt in events:
             try:
                 print_event(evt)
