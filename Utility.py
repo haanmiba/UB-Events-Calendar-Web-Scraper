@@ -19,6 +19,9 @@ START_END_REGEX = r'(Starts|Ends):'
 ALL_DAY_REGEX = r'All\sDay'
 DATE_REGEX = r'(0?\d|1[0-2])/(0?\d|[12]\d|3[01])/([12]\d{3})'
 TIME_REGEX = r'(0?[0-9]|1[0-2]):([0-5][0-9])(:[0-5][0-9])?\s?[AP]\.?M\.?'
+CONTACT_NAME_REGEX = r'^[a-zA-Z ,-]+$'
+PHONE_NUMBER_REGEX = r'\(?\d{3}\)?(\s|-)?\d{3}(\s|-)?\d{4}'
+EMAIL_REGEX = r'[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9.-]+'
 
 
 class InvalidConfigFileTypeError(Exception):
@@ -142,6 +145,27 @@ def extract_date_time(raw_date_time, tz):
     return start_w_timezone.strftime('%m/%d/%Y %I:%M %p %Z%z'), end_w_timezone.strftime('%m/%d/%Y %I:%M %p %Z%z')
 
 
+def extract_contact_info(raw_contact):
+
+    parsed_data = {}
+
+    contact_names = re.findall(CONTACT_NAME_REGEX, raw_contact, flags=re.MULTILINE)
+    if contact_names:
+        parsed_data['name'] = '\n'.join(contact_names)
+
+    pattern = re.compile(EMAIL_REGEX)
+    for match in re.finditer(pattern, raw_contact):
+        email = match.group()
+        parsed_data['email'] = email
+
+    pattern = re.compile(PHONE_NUMBER_REGEX)
+    for match in re.finditer(pattern, raw_contact):
+        phone_number = match.group()
+        parsed_data['phone_number'] = phone_number
+
+    return parsed_data
+
+
 def print_event(evt):
     print_str = evt.__str__()
     for attr in ['location', 'contact', 'description']:
@@ -154,3 +178,8 @@ def print_event(evt):
             print_str += '  {:<{fill}} {}\n'.format(label+':', value, fill=max(map(len, evt.additional_info.keys()))+1)
 
     print(print_str)
+
+
+def export_json(events):
+    with open('test.json', 'w') as f:
+        json.dump({'events': events}, f, indent=4)
