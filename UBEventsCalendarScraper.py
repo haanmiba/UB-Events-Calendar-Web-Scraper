@@ -42,18 +42,20 @@ class UBEventsCalendarScraper(Scraper):
 
     def scrape_events(self):
         current_page = 0
-        while self.config.start_page <= current_page < self.config.end_page or self.config.all_pages:
-            event_elements = self.browser.find_elements_by_class_name('list-event-preview')
-            for event_elem in event_elements:
-                header = event_elem.find_element_by_xpath('.//h3/a')
-                date_time = event_elem.find_element_by_xpath('.//p')
-                start, end = extract_date_time(date_time.text, tz='US/Eastern')
-                evt = Event(header.text, header.get_attribute('href'), start, end)
+        while current_page < self.config.end_page or self.config.all_pages:
 
-                if self.config.deep_scrape:
-                    self.deep_scrape(evt)
+            if self.config.start_page <= current_page:
+                event_elements = self.browser.find_elements_by_class_name('list-event-preview')
+                for event_elem in event_elements:
+                    header = event_elem.find_element_by_xpath('.//h3/a')
+                    date_time = event_elem.find_element_by_xpath('.//p')
+                    start, end = extract_date_time(date_time.text, tz='US/Eastern')
+                    evt = Event(header.text, header.get_attribute('href'), start, end)
 
-                self.event_list.append(evt)
+                    if self.config.deep_scrape:
+                        self.deep_scrape(evt)
+
+                    self.event_list.append(evt)
 
             if not self.next_page_button_exists():
                 break
