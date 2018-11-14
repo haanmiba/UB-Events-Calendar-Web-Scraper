@@ -13,6 +13,7 @@ from Configuration import Configuration
 ALLOWED_CONFIG_FILE_TYPES = {'cfg', 'conf', 'config', 'ini', 'json', 'xml', 'yaml', 'yml'}
 ALLOWED_TRUE_STRINGS = {'true', 't', 'yes', 'y'}
 ALLOWED_FALSE_STRINGS = {'false', 'f', 'no', 'n'}
+ALLOWED_EXPORT_FILE_TYPES = {'json', 'xml', 'yaml', 'yml'}
 
 PROMPT = 'Input the file path to the text file storing the path to the driver.'
 START_END_REGEX = r'(Starts|Ends):'
@@ -146,7 +147,6 @@ def extract_date_time(raw_date_time, tz):
 
 
 def extract_contact_info(raw_contact):
-
     parsed_data = {}
 
     contact_names = re.findall(CONTACT_NAME_REGEX, raw_contact, flags=re.MULTILINE)
@@ -170,7 +170,7 @@ def print_event(evt):
     print_str = evt.__str__()
     for attr in ['location', 'contact', 'description']:
         if attr in evt.__dict__:
-            print_str += '{}:\n{}\n\n'.format(' '.join(map(lambda x: x.capitalize(), re.split(' |_', attr))),
+            print_str += '{}:\n{}\n\n'.format(' '.join(map(lambda x: x.capitalize(), re.split(r' |_', attr))),
                                               evt.__dict__[attr])
     if 'additional_info' in evt.__dict__:
         print_str += 'Additional Info:\n'
@@ -180,6 +180,24 @@ def print_event(evt):
     print(print_str)
 
 
-def export_json(events):
-    with open('test.json', 'w') as f:
+def export_json(events, output_file_path):
+    with open(output_file_path, 'w') as f:
         json.dump({'events': events}, f, indent=4)
+
+
+def convert_dict_to_xml(parent, d):
+    for key, value in d.items():
+        element = ET.SubElement(parent, key)
+        if isinstance(value, dict):
+            convert_dict_to_xml(element, value)
+        else:
+            element.text = value
+
+
+def export_xml(events, output_file_path):
+    root = ET.Element('events')
+    tree = ET.ElementTree(root)
+    for evt in events:
+        evt_element = ET.SubElement(root, 'event')
+        convert_dict_to_xml(evt_element, evt)
+    tree.write(output_file_path)

@@ -1,6 +1,6 @@
 import sys
 import json
-from Utility import read_config_file, InvalidConfigFileTypeError, InvalidConfigFileValueError, print_event, export_json
+from Utility import read_config_file, InvalidConfigFileTypeError, InvalidConfigFileValueError, print_event, export_json, export_xml, ALLOWED_EXPORT_FILE_TYPES
 from UBEventsCalendarScraper import UBEventsCalendarScraper
 from selenium.common.exceptions import WebDriverException
 from urllib3.exceptions import MaxRetryError
@@ -16,13 +16,23 @@ def main():
         config = read_config_file()
         scraper = UBEventsCalendarScraper(config)
         events = scraper.scrape_events()
-        export_json([evt.__dict__ for evt in events])
-        for evt in events:
-            try:
-                print_event(evt)
-                print('-' * 120)
-            except UnicodeEncodeError:
+        if config.output:
+            if config.output_extension == 'json':
+                export_json([evt.__dict__ for evt in events], config.output_path)
+            elif config.output_extension == 'xml':
+                export_xml([evt.__dict__ for evt in events], config.output_path)
+            elif config.output_extension in {'yaml', 'yml'}:
                 pass
+            else:
+                raise InvalidConfigFileValueError('One of the following file extensions must be provided: {}'
+                                                  .format(', '.join(ALLOWED_EXPORT_FILE_TYPES)))
+        else:
+            for evt in events:
+                try:
+                    print_event(evt)
+                    print('-' * 120)
+                except UnicodeEncodeError:
+                    pass
     except (InvalidConfigFileTypeError, InvalidConfigFileValueError) as e:
         print(str(e))
         exit_code = 1
