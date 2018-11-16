@@ -1,5 +1,5 @@
 import sys
-from Utility import read_config_file, InvalidConfigFileTypeError, InvalidConfigFileValueError, print_event, export_json, export_xml, export_yaml, ALLOWED_EXPORT_FILE_TYPES
+from Utility import read_config_file, InvalidConfigFileTypeError, InvalidConfigFileValueError, print_events, export_events
 from UBEventsCalendarScraper import UBEventsCalendarScraper
 from selenium.common.exceptions import WebDriverException
 from urllib3.exceptions import MaxRetryError
@@ -16,22 +16,9 @@ def main():
         scraper = UBEventsCalendarScraper(config)
         events = scraper.scrape_events()
         if config.export:
-            if config.export_extension == 'json':
-                export_json([evt.__dict__ for evt in events], config.export_path)
-            elif config.export_extension == 'xml':
-                export_xml([evt.__dict__ for evt in events], config.export_path)
-            elif config.export_extension in {'yaml', 'yml'}:
-                export_yaml([evt.__dict__ for evt in events], config.export_path)
-            else:
-                raise InvalidConfigFileValueError('One of the following file extensions must be provided: {}'
-                                                  .format(', '.join(ALLOWED_EXPORT_FILE_TYPES)))
+            export_events(events, config)
         else:
-            for evt in events:
-                try:
-                    print_event(evt)
-                    print('-' * 120)
-                except UnicodeEncodeError:
-                    pass
+            print_events(events)
     except (InvalidConfigFileTypeError, InvalidConfigFileValueError) as e:
         print(str(e))
         exit_code = 1
@@ -43,7 +30,6 @@ def main():
         scraper.quit()
         print('Failed to establish a new connection with https://calendar.buffalo.edu/. Check network connection.')
         exit_code = 2
-
     sys.exit(exit_code)
 
 if __name__ == '__main__':
