@@ -180,6 +180,15 @@ def print_event(evt):
     print(print_str)
 
 
+def print_events(events):
+    for evt in events:
+        try:
+            print_event(evt)
+            print('-' * 120)
+        except UnicodeEncodeError:
+            pass
+
+
 def export_json(events, export_file_path):
     with open(export_file_path, 'w') as f:
         json.dump({'events': events}, f, indent=4)
@@ -206,3 +215,15 @@ def export_xml(events, export_file_path):
 def export_yaml(events, export_file_path):
     with open(export_file_path, 'w') as yaml_file:
         yaml.dump({'events': events}, yaml_file, default_flow_style=False)
+
+
+def export_events(events, config):
+    if config.export_extension == 'json':
+        export_json([evt.__dict__ for evt in events], config.export_path)
+    elif config.export_extension == 'xml':
+        export_xml([evt.__dict__ for evt in events], config.export_path)
+    elif config.export_extension in {'yaml', 'yml'}:
+        export_yaml([evt.__dict__ for evt in events], config.export_path)
+    else:
+        raise InvalidConfigFileValueError('One of the following file extensions must be provided: {}'
+                                          .format(', '.join(ALLOWED_EXPORT_FILE_TYPES)))
