@@ -17,7 +17,7 @@ def main():
         events = scraper.scrape_events()
         if config.export:
             export_events(events, config)
-        else:
+        if config.print_events:
             print_events(events)
     except (InvalidConfigFileTypeError, InvalidConfigFileValueError) as e:
         print(str(e))
