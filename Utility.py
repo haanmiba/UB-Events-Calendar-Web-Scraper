@@ -1,7 +1,7 @@
 import sys
 import re
 import json
-# import yaml
+import yaml
 import xml.etree.ElementTree as ET
 from xml.etree.ElementTree import Element
 from configparser import ConfigParser, SectionProxy
@@ -58,10 +58,10 @@ def parse_config_file(parser, func_list, file_ext):
     start_page = get_nested_elem(parser, func_list, ['settings', 'start_page'], file_ext, int) - 1
     end_page = get_nested_elem(parser, func_list, ['settings', 'end_page'], file_ext, int)
     all_pages = get_nested_elem(parser, func_list, ['settings', 'all_pages'], file_ext, eval_config_file_boolean)
-    output = get_nested_elem(parser, func_list, ['settings', 'output'], file_ext, eval_config_file_boolean)
-    output_path = get_nested_elem(parser, func_list, ['settings', 'output_path'], file_ext, str)
+    export = get_nested_elem(parser, func_list, ['settings', 'export'], file_ext, eval_config_file_boolean)
+    export_path = get_nested_elem(parser, func_list, ['settings', 'export_path'], file_ext, str)
 
-    c = Configuration(chromedriver_path, headless, deep_scrape, start_page, end_page, all_pages, output, output_path)
+    c = Configuration(chromedriver_path, headless, deep_scrape, start_page, end_page, all_pages, export, export_path)
     return c
 
 
@@ -180,8 +180,8 @@ def print_event(evt):
     print(print_str)
 
 
-def export_json(events, output_file_path):
-    with open(output_file_path, 'w') as f:
+def export_json(events, export_file_path):
+    with open(export_file_path, 'w') as f:
         json.dump({'events': events}, f, indent=4)
 
 
@@ -194,10 +194,15 @@ def convert_dict_to_xml(parent, d):
             element.text = value
 
 
-def export_xml(events, output_file_path):
+def export_xml(events, export_file_path):
     root = ET.Element('events')
     tree = ET.ElementTree(root)
     for evt in events:
         evt_element = ET.SubElement(root, 'event')
         convert_dict_to_xml(evt_element, evt)
-    tree.write(output_file_path)
+    tree.write(export_file_path)
+
+
+def export_yaml(events, export_file_path):
+    with open(export_file_path, 'w') as yaml_file:
+        yaml.dump({'events': events}, yaml_file, default_flow_style=False)

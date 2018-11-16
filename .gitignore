@@ -7,4 +7,5 @@ __pycache__/
 *.txt
 *.json
 *.xml
+*.yml
 config
