@@ -1,9 +1,11 @@
 import sys
+import os
 import re
 import json
 import yaml
 import xml.etree.ElementTree as ET
 from xml.etree.ElementTree import Element
+from xml.dom import minidom
 from configparser import ConfigParser, SectionProxy
 from datetime import datetime, timedelta
 from pytz import timezone
@@ -60,9 +62,15 @@ def parse_config_file(parser, func_list, file_ext):
     all_pages = get_nested_elem(parser, func_list, ['settings', 'all_pages'], file_ext, eval_config_file_boolean)
     export = get_nested_elem(parser, func_list, ['settings', 'export'], file_ext, eval_config_file_boolean)
     export_path = get_nested_elem(parser, func_list, ['settings', 'export_path'], file_ext, str)
+    export_extension = export_path.rsplit('.', 1)[-1].lower()
+    print_events = get_nested_elem(parser, func_list, ['settings', 'print'], file_ext, eval_config_file_boolean)
 
-    c = Configuration(chromedriver_path, headless, deep_scrape, start_page, end_page, all_pages, export, export_path)
-    return c
+    if export:
+        if len(export_path.rsplit('.', 1)) < 2:
+            raise InvalidConfigFileValueError('No file extension listed in export path `{}`'.format(export_path))
+
+    return Configuration(chromedriver_path, headless, deep_scrape, start_page, end_page,
+                         all_pages, export, export_path, export_extension, print_events)
 
 
 def read_config_file():
@@ -166,18 +174,29 @@ def extract_contact_info(raw_contact):
     return parsed_data
 
 
+def format_attribute(attr):
+    return ' '.join(map(lambda x: x.capitalize(), re.split(r' |_', attr)))
+
+
 def print_event(evt):
     print_str = evt.__str__()
     for attr in ['location', 'contact', 'description']:
         if attr in evt.__dict__:
-            print_str += '{}:\n{}\n\n'.format(' '.join(map(lambda x: x.capitalize(), re.split(r' |_', attr))),
-                                              evt.__dict__[attr])
+            if attr == 'contact':
+                print_str += 'Contact:\n'
+                for label, value in evt.__dict__[attr].items():
+                    print_str += '  {:<{fill}} {}\n'.format(format_attribute(label) + ':', value,
+                                                            fill=max(map(len, evt.contact.keys())) + 1)
+                else:
+                    print_str += '\n'
+            else:
+                print_str += '{}:\n{}\n\n'.format(format_attribute(attr), evt.__dict__[attr])
     if 'additional_info' in evt.__dict__:
         print_str += 'Additional Info:\n'
         for label, value in evt.additional_info.items():
             print_str += '  {:<{fill}} {}\n'.format(label+':', value, fill=max(map(len, evt.additional_info.keys()))+1)
 
-    print(print_str)
+    print(print_str.strip())
 
 
 def print_events(events):
@@ -205,11 +224,12 @@ def convert_dict_to_xml(parent, d):
 
 def export_xml(events, export_file_path):
     root = ET.Element('events')
-    tree = ET.ElementTree(root)
     for evt in events:
         evt_element = ET.SubElement(root, 'event')
         convert_dict_to_xml(evt_element, evt)
-    tree.write(export_file_path)
+    xml_str = minidom.parseString(ET.tostring(root)).toprettyxml(indent='  ')
+    with open(export_file_path, 'w') as xml_file:
+        xml_file.write(xml_str)
 
 
 def export_yaml(events, export_file_path):
@@ -218,6 +238,7 @@ def export_yaml(events, export_file_path):
 
 
 def export_events(events, config):
+    os.makedirs(os.path.dirname(config.export_path), exist_ok=True)
     if config.export_extension == 'json':
         export_json([evt.__dict__ for evt in events], config.export_path)
     elif config.export_extension == 'xml':
