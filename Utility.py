@@ -93,39 +93,6 @@ def eval_config_file_boolean(text_value):
         raise InvalidConfigFileValueError('`{}` is not a valid value for the config file'.format(text_value))
 
 
-def get_nested_elem(parser, func_list, key_list, file_ext, cast):
-    """Retrieve the value of a nested element from within a config file.
-
-    Parameters
-    ----------
-    parser : ConfigParser (.ini, .config, .cfg), dict (.json, .yaml, .yml), or Element (.xml)
-        The object that will store the structure of elements
-    func_list : list
-        A list of functions that will be called on the structure of elements to get the nested element
-    key_list : list
-        A list of str that is the `path` within the config file to retrieve the nested element
-    file_ext : str
-        File extension for the config file
-    cast : function
-        The data type that the element's text value will be converted into
-
-    Returns
-    -------
-    object
-        Depending on the function of cast, the text value of the nested element can be converted into any data type
-    """
-
-    elem = parser
-    # Have element be set to the result of calling `func` on elem to get the value of the key `key`
-    for func, key in zip(func_list, key_list):
-        elem = func(elem, key)
-    # If the file extension is `.xml`, convert the element to its text value.
-    if file_ext == 'xml':
-        elem = elem.text
-    # Cast the text value into the desired data type and return it
-    return cast(elem)
-
-
 def validate_start_end_pages(start_page, end_page):
     """Validate the start and end pages of the configuration settings.
 
@@ -171,6 +138,39 @@ def check_file_extension_exists(file_name):
 
     if len(file_name.rsplit('.', 1)) < 2:
         raise InvalidConfigFileValueError('No file extension listed in export path `{}`'.format(file_name))
+
+
+def get_nested_elem(parser, func_list, key_list, file_ext, cast):
+    """Retrieve the value of a nested element from within a config file.
+
+    Parameters
+    ----------
+    parser : ConfigParser (.ini, .config, .cfg), dict (.json, .yaml, .yml), or Element (.xml)
+        The object that will store the structure of elements
+    func_list : list
+        A list of functions that will be called on the structure of elements to get the nested element
+    key_list : list
+        A list of str that is the `path` within the config file to retrieve the nested element
+    file_ext : str
+        File extension for the config file
+    cast : function
+        The data type that the element's text value will be converted into
+
+    Returns
+    -------
+    type(cast)
+        Depending on the function of cast, the text value of the nested element can be converted into any data type
+    """
+
+    elem = parser
+    # Have element be set to the result of calling `func` on elem to get the value of the key `key`
+    for func, key in zip(func_list, key_list):
+        elem = func(elem, key)
+    # If the file extension is `.xml`, convert the element to its text value.
+    if file_ext == 'xml':
+        elem = elem.text
+    # Cast the text value into the desired data type and return it
+    return cast(elem)
 
 
 def parse_config_file(parser, func_list, file_ext):
@@ -307,7 +307,7 @@ def extract_start_end_pages(pages):
 
     Returns
     -------
-    (int, int)
+    tuple (int, int)
         A tuple of page numbers
 
     Raises
@@ -408,7 +408,7 @@ def extract_date_time(raw_date_time, tz):
 
     Returns
     -------
-    (str, str)
+    tuple (str, str)
         A tuple with the event start datetime and event end datetime, both formatted as: MM/DD/YYYY HH:MM AM/PM UTC-OFFSET
     """
 
