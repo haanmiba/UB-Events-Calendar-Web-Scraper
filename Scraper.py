@@ -6,7 +6,7 @@ from selenium.webdriver.common.by import By
 
 class Scraper:
     """
-    Basic web scraper, running off of selenium
+    Basic web scraper, running off of Selenium WebDriver
 
     Attributes
     ----------
