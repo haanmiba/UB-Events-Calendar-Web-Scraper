@@ -12,7 +12,7 @@ USAGE_STR = '''usage: python Driver.py --config <path>
 usage: python Driver.py --path <driver_path> (--head) (--deep) (--print) ([<last_page> | <first_page> <last_page> | --all]) (--export <export_path>) (--overwrite)'''
 
 # Set of allowed command line arguments.
-ALLOWED_ARGS = {'--config', '--path', '--head', '--deep', '--print', '--all', '--export', '--overwrite'}
+ALLOWED_FLAGS = {'--config', '--path', '--head', '--deep', '--print', '--all', '--export', '--overwrite'}
 
 
 def main():
@@ -25,7 +25,7 @@ def main():
         sys.exit(1)
 
     # Check if the user used an invalid argument. If so, terminate the program with exit code 1.
-    invalid_args = set(filter(lambda x: x.startswith('--'), sys.argv)) - ALLOWED_ARGS
+    invalid_args = set(filter(lambda x: x.startswith('--'), sys.argv)) - ALLOWED_FLAGS
     if invalid_args:
         print('`{}` is not a valid argument.'.format(next(iter(invalid_args))))
         print(USAGE_STR)

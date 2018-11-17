@@ -91,9 +91,9 @@ class Scraper:
         Parameters
         ----------
         close_tab_idx : int
-        :param close_tab_idx:
-        :param dest_tab_idx:
-        :return:
+            The index of the tab to be closed.
+        dest_tab_idx : int
+            The index of the tab to switch to after a tab is closed.
         """
 
         # Switch to the tab at close_tab_idx, close the tab, decrement the num_tabs opened,
