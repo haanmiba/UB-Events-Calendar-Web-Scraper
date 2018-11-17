@@ -17,7 +17,6 @@ ALLOWED_TRUE_STRINGS = {'true', 't', 'yes', 'y'}
 ALLOWED_FALSE_STRINGS = {'false', 'f', 'no', 'n'}
 ALLOWED_EXPORT_FILE_TYPES = {'json', 'xml', 'yaml', 'yml'}
 
-PROMPT = 'Input the file path to the text file storing the path to the driver.'
 START_END_REGEX = r'(Starts|Ends):'
 ALL_DAY_REGEX = r'All\sDay'
 DATE_REGEX = r'(0?\d|1[0-2])/(0?\d|[12]\d|3[01])/([12]\d{3})'
@@ -32,6 +31,14 @@ class InvalidConfigFileTypeError(Exception):
 
 
 class InvalidConfigFileValueError(Exception):
+    pass
+
+
+class InvalidArgumentsError(Exception):
+    pass
+
+
+class OverwriteExistingFileError(Exception):
     pass
 
 
@@ -54,27 +61,27 @@ def get_nested_elem(parser, func_list, key_list, file_ext, cast):
 
 
 def parse_config_file(parser, func_list, file_ext):
-    chromedriver_path = get_nested_elem(parser, func_list, ['chromedriver', 'path'], file_ext, str)
+    chromedriver_path = os.path.abspath(get_nested_elem(parser, func_list, ['chromedriver', 'path'], file_ext, str))
     headless = get_nested_elem(parser, func_list, ['chromedriver', 'headless'], file_ext, eval_config_file_boolean)
     deep_scrape = get_nested_elem(parser, func_list, ['settings', 'deep_scrape'], file_ext, eval_config_file_boolean)
     start_page = get_nested_elem(parser, func_list, ['settings', 'start_page'], file_ext, int) - 1
     end_page = get_nested_elem(parser, func_list, ['settings', 'end_page'], file_ext, int)
     all_pages = get_nested_elem(parser, func_list, ['settings', 'all_pages'], file_ext, eval_config_file_boolean)
     export = get_nested_elem(parser, func_list, ['settings', 'export'], file_ext, eval_config_file_boolean)
+    overwrite = get_nested_elem(parser, func_list, ['settings', 'overwrite'], file_ext, eval_config_file_boolean)
     export_path = get_nested_elem(parser, func_list, ['settings', 'export_path'], file_ext, str)
     export_extension = export_path.rsplit('.', 1)[-1].lower()
-    print_events = get_nested_elem(parser, func_list, ['settings', 'print'], file_ext, eval_config_file_boolean)
+    print_evts = get_nested_elem(parser, func_list, ['settings', 'print'], file_ext, eval_config_file_boolean)
 
     if export:
         if len(export_path.rsplit('.', 1)) < 2:
             raise InvalidConfigFileValueError('No file extension listed in export path `{}`'.format(export_path))
 
     return Configuration(chromedriver_path, headless, deep_scrape, start_page, end_page,
-                         all_pages, export, export_path, export_extension, print_events)
+                         all_pages, export, overwrite, export_path, export_extension, print_evts)
 
 
-def read_config_file():
-    config_file_path = sys.argv[1] if len(sys.argv) > 1 else input(PROMPT)
+def read_config_file(config_file_path):
     file_extension = config_file_path.rsplit('.')[-1].lower()
 
     if file_extension not in ALLOWED_CONFIG_FILE_TYPES:
@@ -110,6 +117,39 @@ def read_config_file():
     except KeyError as e:
         print('Missing Key: {}'.format(e))
         sys.exit(1)
+
+
+def read_args(args):
+    chromedriver_path = os.path.abspath(args[args.index('--path')+1])
+    headless = '--head' not in args
+    deep_scrape = '--deep' in args
+    pages = list(map(int, filter(lambda arg: arg.isnumeric(), args)))
+    if len(pages) == 0:
+        start_page = 0
+        end_page = 1
+    elif len(pages) == 1:
+        start_page = 0
+        end_page = pages[0]
+    elif len(pages) == 2:
+        start_page = pages[0] - 1
+        end_page = pages[1]
+    else:
+        raise InvalidArgumentsError('Too many page arguments. Only 0-2 are needed.')
+    all_pages = '--all' in args
+    export = '--export' in args
+    if '--export' == args[-1]:
+        raise InvalidArgumentsError('`--export` cannot be the final argument.')
+    export_path = args[args.index('--export')+1] if export else None
+    export_extension = export_path.rsplit('.', 1)[-1].lower() if export_path else None
+    overwrite = '--overwrite' in args
+    print_evts = '--print' in args
+
+    if export:
+        if len(export_path.rsplit('.', 1)) < 2:
+            raise InvalidConfigFileValueError('No file extension listed in export path `{}`'.format(export_path))
+
+    return Configuration(chromedriver_path, headless, deep_scrape, start_page, end_page,
+                         all_pages, export, overwrite, export_path, export_extension, print_evts)
 
 
 def extract_date_time(raw_date_time, tz):
@@ -238,6 +278,9 @@ def export_yaml(events, export_file_path):
 
 
 def export_events(events, config):
+    if not config.overwrite and os.path.isfile(config.export_path):
+        raise OverwriteExistingFileError('`{}` already exists.'.format(config.export_path))
+
     os.makedirs(os.path.dirname(config.export_path), exist_ok=True)
     if config.export_extension == 'json':
         export_json([evt.__dict__ for evt in events], config.export_path)
