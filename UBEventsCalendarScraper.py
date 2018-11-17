@@ -149,8 +149,7 @@ class UBEventsCalendarScraper(Scraper):
     def click_next_page_button(self):
         """Click on the next page button."""
 
-        # Get the next page button
+        # Get the next page button and click on it
         button_child = self.browser.find_element_by_class_name('icon-angle-right')
         button = button_child.find_element_by_xpath('..')
-
-        button.click()  # Click on the next page button
+        button.click()

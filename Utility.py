@@ -12,18 +12,34 @@ from pytz import timezone
 from Configuration import Configuration
 
 
+# Set of allowed config file types.
 ALLOWED_CONFIG_FILE_TYPES = {'cfg', 'conf', 'config', 'ini', 'json', 'xml', 'yaml', 'yml'}
+# Set of allowed `true` string values.
 ALLOWED_TRUE_STRINGS = {'true', 't', 'yes', 'y'}
+# Set of allowed `false` string values.
 ALLOWED_FALSE_STRINGS = {'false', 'f', 'no', 'n'}
+# Set of allowed export file types.
 ALLOWED_EXPORT_FILE_TYPES = {'json', 'xml', 'yaml', 'yml'}
 
+# Regex for seeing if a string contains `Start` or `End`
 START_END_REGEX = r'(Starts|Ends):'
+# Regex for seeing if a string contains `All Day`
 ALL_DAY_REGEX = r'All\sDay'
+# Regex for retrieving the date from a string
 DATE_REGEX = r'(0?\d|1[0-2])/(0?\d|[12]\d|3[01])/([12]\d{3})'
+# Regex for retrieving the time from a string
 TIME_REGEX = r'(0?[0-9]|1[0-2]):([0-5][0-9])(:[0-5][0-9])?\s?[AP]\.?M\.?'
+# Regex for retrieving the contact name from a contact info string
 CONTACT_NAME_REGEX = r'^[a-zA-Z ,-]+$'
+# Regex for retrieving the phone number from a contact info string
 PHONE_NUMBER_REGEX = r'\(?\d{3}\)?(\s|-)?\d{3}(\s|-)?\d{4}'
+# Regex for retrieving the email from a contact info string
 EMAIL_REGEX = r'[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9.-]+'
+
+
+class InvalidExportFileTypeError(Exception):
+    """An exception that indicates that the export file path has an invalid file type."""
+    pass
 
 
 class InvalidConfigFileTypeError(Exception):
@@ -111,17 +127,48 @@ def get_nested_elem(parser, func_list, key_list, file_ext, cast):
 
 
 def validate_start_end_pages(start_page, end_page):
+    """Validate the start and end pages of the configuration settings.
+
+    Parameters
+    ----------
+    start_page : int
+        page where the web scraper will begin extracting information
+    end_page : int
+        page where the web scraper will stop extracting information
+
+    Raises
+    ------
+    InvalidConfigFileValueError
+        if the start and/or end pages are invalid
+    """
+
+    # If the start page is negative
     if start_page < 0:
         raise InvalidConfigFileValueError('Start page must be a non-negative number. The number given was `{}`'
                                           .format(start_page+1))
+    # If the end page is negative
     if end_page < 0:
         raise InvalidConfigFileValueError('End page must be greater than or equal to 1. The number given was `{}`'
                                           .format(end_page))
+    # If the end page comes before the start page
     if end_page < start_page:
         raise InvalidConfigFileValueError('End page must be at or after start page, not before.')
 
 
 def check_file_extension_exists(file_name):
+    """Check to see if the file name has a file extension.
+
+    Parameters
+    ----------
+    file_name : str
+        name of the file to check
+
+    Raises
+    ------
+    InvalidConfigFileValueError
+        if there is no file extension
+    """
+
     if len(file_name.rsplit('.', 1)) < 2:
         raise InvalidConfigFileValueError('No file extension listed in export path `{}`'.format(file_name))
 
@@ -145,8 +192,8 @@ def parse_config_file(parser, func_list, file_ext):
 
     Raises
     ------
-    InvalidConfigFileValueError
-        if any values within the configuration file are invalid
+    InvalidExportFileTypeError
+        if the export file is an invalid file type
     """
 
     # Retrieve all of the configuration settings from the config file
@@ -169,6 +216,12 @@ def parse_config_file(parser, func_list, file_ext):
     # the export file path has no file extension, raise an InvalidConfigFileValueError
     if export:
         check_file_extension_exists(export_path)
+
+    # If the export file path extension is not an allowed export
+    # file type, raise an InvalidConfigFileValueError
+    if export and export_extension not in ALLOWED_EXPORT_FILE_TYPES:
+        raise InvalidExportFileTypeError('One of the following file extensions must be provided: {}'
+                                         .format(', '.join(ALLOWED_EXPORT_FILE_TYPES)))
 
     # Create a new instance of Configuration and return it
     return Configuration(chromedriver_path, headless, deep_scrape, start_page, end_page,
@@ -245,6 +298,24 @@ def read_config_file(config_file_path):
 
 
 def extract_start_end_pages(pages):
+    """Return the proper order of start/end pages
+
+    Parameters
+    ----------
+    pages : list
+        A list of page numbers
+
+    Returns
+    -------
+    (int, int)
+        A tuple of page numbers
+
+    Raises
+    ------
+    InvalidArgumentsError
+        if the user entered more than 2 page numbers
+    """
+
     # If the no page numbers were entered, have the start page be 0 and end page be 1
     if len(pages) == 0:
         return 0, 1
@@ -279,6 +350,8 @@ def read_args(args):
     ------
     InvalidArgumentsError
         if any of the command line arguments are invalid
+    InvalidExportFileTypeError
+        if the export file is an invalid file type
     """
 
     # Extract ChromeDriver path, headless, deep scrape
@@ -311,6 +384,12 @@ def read_args(args):
     # the export file path has no file extension, raise an InvalidConfigFileValueError
     if export:
         check_file_extension_exists(export_path)
+
+    # If the export file path extension is not an allowed export
+    # file type, raise an InvalidConfigFileValueError
+    if export and export_extension not in ALLOWED_EXPORT_FILE_TYPES:
+        raise InvalidExportFileTypeError('One of the following file extensions must be provided: {}'
+                                         .format(', '.join(ALLOWED_EXPORT_FILE_TYPES)))
 
     # Create a new instance of Configuration and return it
     return Configuration(chromedriver_path, headless, deep_scrape, start_page, end_page,
@@ -386,33 +465,77 @@ def extract_date_time(raw_date_time, tz):
 
 
 def extract_contact_info(raw_contact):
+    """Extract the contact information from a raw string of contact info.
+
+    Parameters
+    ----------
+    raw_contact : str
+        The raw string containing information about the contact info for an event.
+
+    Returns
+    -------
+    dict
+        A dictionary containing contact information (name, phone number, email)
+    """
+
     parsed_data = {}
 
+    # Extract the name of the contact
     contact_names = re.findall(CONTACT_NAME_REGEX, raw_contact, flags=re.MULTILINE)
     if contact_names:
         parsed_data['name'] = '\n'.join(contact_names)
 
+    # Extract the email of the contact
     pattern = re.compile(EMAIL_REGEX)
     for match in re.finditer(pattern, raw_contact):
         email = match.group()
         parsed_data['email'] = email
 
+    # Extract the phone number of the contact
     pattern = re.compile(PHONE_NUMBER_REGEX)
     for match in re.finditer(pattern, raw_contact):
         phone_number = match.group()
         parsed_data['phone_number'] = phone_number
 
+    # Return the extracted contact info dictionary
     return parsed_data
 
 
 def format_attribute(attr):
+    """Format the attribute/key of an object/dict for printing (my_attr -> My Attr)
+
+    Parameters
+    ----------
+    attr : str
+        The string to be formatted.
+
+    Returns
+    -------
+    str
+        The formatted string.
+    """
     return ' '.join(map(lambda x: x.capitalize(), re.split(r' |_', attr)))
 
 
 def print_event(evt):
-    print_str = evt.__str__()
+    """Print out an event to the command line.
+
+    Parameters
+    ----------
+    evt : Event
+        The event to be printed out.
+    """
+
+    # Retrieve the __str__ representation of the event.
+    print_str = str(evt)
+
+    # Retrieve the values of the event's location, contact info, and description and add them to the print_str
     for attr in ['location', 'contact', 'description']:
+
+        # If the event has this attribute, add to the print string
         if evt.__dict__[attr]:
+
+            # If the attribute is contact info, add the contact info's keys and values to the print string
             if attr == 'contact':
                 print_str += 'Contact:\n'
                 for label, value in evt.__dict__[attr].items():
@@ -420,65 +543,153 @@ def print_event(evt):
                                                             fill=max(map(len, evt.contact.keys())) + 1)
                 else:
                     print_str += '\n'
+            # Else, add the attribute and its value to the print string
             else:
                 print_str += '{}:\n{}\n\n'.format(format_attribute(attr), evt.__dict__[attr])
+
+    # If the event has additional info, add its keys and values to the print string
     if evt.__dict__['additional_info']:
         print_str += 'Additional Info:\n'
         for label, value in evt.additional_info.items():
             print_str += '  {:<{fill}} {}\n'.format(label+':', value, fill=max(map(len, evt.additional_info.keys()))+1)
 
+    # Print the print string
     print(print_str.strip())
 
 
 def print_events(events):
+    """Print out a list of events to the command line.
+
+    Parameters
+    ----------
+    events : list
+        List of events to be printed out
+    """
+
+    # Loop through all events in the event list and print them out
     for evt in events:
         try:
             print_event(evt)
             print('-' * 120)
+        # Handle exceptions that deal with issues with printing Unicode characters
         except UnicodeEncodeError:
             pass
 
 
 def export_json(events, export_file_path):
+    """Export a list of events to a JSON file.
+
+    Parameters
+    ----------
+    events : list
+        A list of events to be exported to a JSON file.
+    export_file_path : str
+        The destination file path of the JSON file to be written/overwritten.
+    """
     with open(export_file_path, 'w') as f:
         json.dump({'events': events}, f, indent=4)
 
 
-def convert_dict_to_xml(parent, d):
-    for key, value in d.items():
+def convert_dict_to_xml(parent, dictionary):
+    """Convert a dictionary to a set of nested XML elements.
+
+    Parameters
+    ----------
+    parent : Element
+        The XML element that this XML element will be nested in.
+    dictionary : dict
+        The dictionary that will be converted to a set of nested XML elements.
+    """
+
+    # Loop through all key-value pairs in this dictionary
+    for key, value in dictionary.items():
+        # If this key has no value associated with it, continue to the next key
+        if not value:
+            continue
+        # Create a new XML element with this key and nest it within the parent element
         element = ET.SubElement(parent, key)
+        # If the value is a dictionary, recursively call this method
+        # and have the converted dictionary be nested within element
         if isinstance(value, dict):
             convert_dict_to_xml(element, value)
+        # Otherwise, set value to be this element's text value
         else:
             element.text = value
 
 
 def export_xml(events, export_file_path):
+    """Export a list of events to an XML file.
+
+    Parameters
+    ----------
+    events : list
+        A list of events to be exported to an XML file.
+    export_file_path : str
+        The destination file path of the XML file to be written/overwritten.
+    """
+
+    # Have an <events> element be the root element
     root = ET.Element('events')
+
+    # Loop through all events in the event list, convert them into XML elements, and nest them within the root element
     for evt in events:
+        # Create an XML element called <event>
         evt_element = ET.SubElement(root, 'event')
+        # Convert the event and its information within <event>
         convert_dict_to_xml(evt_element, evt)
+
+    # `Prettify` the XML text, with each level deep being indented
     xml_str = minidom.parseString(ET.tostring(root)).toprettyxml(indent='  ')
     with open(export_file_path, 'w') as xml_file:
         xml_file.write(xml_str)
 
 
 def export_yaml(events, export_file_path):
+    """Export a list of events to a YAML file.
+
+    Parameters
+    ----------
+    events : list
+        A list of events to be exported to a YAML file.
+    export_file_path : str
+        The destination file path of the YAML file to be written/overwritten.
+    """
+
     with open(export_file_path, 'w') as yaml_file:
         yaml.dump({'events': events}, yaml_file, default_flow_style=False)
 
 
 def export_events(events, config):
+    """Export a list of events to a file.
+
+    Parameters
+    ----------
+    events : list
+        A list of events to be exported.
+    config : Configuration
+        Configuration settings for exporting events.
+
+    Raises
+    ------
+    OverwriteExistingFileError
+        If the file to export to already exists and configuration settings disabled overwriting.
+    """
+
+    # If the program is not allowed to overwrite an existing file, raise an OverwriteExistingFileError
     if not config.overwrite and os.path.isfile(config.export_path):
         raise OverwriteExistingFileError('`{}` already exists.'.format(config.export_path))
 
+    # If the directories along the export file path does not exist, create them
     os.makedirs(os.path.dirname(config.export_path), exist_ok=True)
+
+    # If the export file extension is .json, export events to a JSON file
     if config.export_extension == 'json':
         export_json([evt.__dict__ for evt in events], config.export_path)
+
+    # If the export file extension is .xml, export events to an XML file
     elif config.export_extension == 'xml':
         export_xml([evt.__dict__ for evt in events], config.export_path)
+
+    # If the export file extension is .yaml/.yml, export events to a YAML file
     elif config.export_extension in {'yaml', 'yml'}:
         export_yaml([evt.__dict__ for evt in events], config.export_path)
-    else:
-        raise InvalidConfigFileValueError('One of the following file extensions must be provided: {}'
-                                          .format(', '.join(ALLOWED_EXPORT_FILE_TYPES)))
