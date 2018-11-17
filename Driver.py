@@ -1,5 +1,7 @@
 import sys
-from Utility import read_config_file, read_args, InvalidConfigFileTypeError, InvalidConfigFileValueError, OverwriteExistingFileError, print_events, export_events
+from Utility import (read_config_file, read_args,
+                     InvalidConfigFileTypeError, InvalidConfigFileValueError,
+                     OverwriteExistingFileError, print_events, export_events)
 from UBEventsCalendarScraper import UBEventsCalendarScraper
 from selenium.common.exceptions import WebDriverException
 from urllib3.exceptions import MaxRetryError
@@ -8,7 +10,7 @@ from urllib3.exceptions import MaxRetryError
 USAGE_STR = '''usage: python Driver.py --config <path>
 usage: python Driver.py --path <driver_path> (--head) (--deep) (--print) ([<last_page> | <first_page> <last_page> | --all]) (--export <export_path>) (--overwrite)'''
 
-ALLOWED_ARGS = {'--config', '--path'}
+ALLOWED_ARGS = {'--config', '--path', '--head', '--deep', '--print', '--all', '--export', '--overwrite'}
 
 
 def main():
@@ -16,8 +18,10 @@ def main():
         print('This program requires at least 3 command line arguments.')
         print(USAGE_STR)
         sys.exit(1)
-    if sys.argv[1] not in ALLOWED_ARGS:
-        print('`{}` is not a valid argument.')
+
+    invalid_args = set(filter(lambda x: x.startswith('--'), sys.argv)) - ALLOWED_ARGS
+    if invalid_args:
+        print('`{}` is not a valid argument.'.format(next(iter(invalid_args))))
         print(USAGE_STR)
         sys.exit(1)
 

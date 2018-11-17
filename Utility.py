@@ -82,6 +82,9 @@ def parse_config_file(parser, func_list, file_ext):
 
 
 def read_config_file(config_file_path):
+    if len(config_file_path.rsplit('.')) < 2:
+        raise InvalidConfigFileValueError('No file extension listed in config file path `{}`'.format(config_file_path))
+
     file_extension = config_file_path.rsplit('.')[-1].lower()
 
     if file_extension not in ALLOWED_CONFIG_FILE_TYPES:
