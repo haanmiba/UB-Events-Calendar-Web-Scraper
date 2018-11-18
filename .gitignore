@@ -1,5 +1,6 @@
 
 .DS_Store
+.vscode
 chromedriver
 __pycache__/
 *.pyc
