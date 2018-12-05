@@ -1,0 +1,19 @@
+{
+  "chromedriver":
+  {
+    "path": "/path/to/your/chromedriver/executable",
+    "headless": "TRUE"
+  },
+
+  "settings":
+  {
+    "deep_scrape": "TRUE",
+    "start_page": 1,
+    "end_page": 1,
+    "all_pages": "FALSE",
+    "export": "TRUE",
+    "overwrite": "TRUE",
+    "export_path": "data/data.json",
+    "print": "TRUE"
+  }
+}

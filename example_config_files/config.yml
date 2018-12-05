@@ -1,0 +1,13 @@
+chromedriver:
+  path: '/path/to/your/chromedriver/executable'
+  headless: 'True'
+
+settings:
+  deep_scrape: 'True'
+  start_page: 1
+  end_page: 1
+  all_pages: 'False'
+  export: 'True'
+  overwrite: 'False'
+  export_path: 'data/data.yml'
+  print: 'True'

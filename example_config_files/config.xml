@@ -1,0 +1,17 @@
+<?xml version="1.0"?>
+<config>
+    <chromedriver>
+        <path>/path/to/your/chromedriver/executable</path>
+        <headless>True</headless>
+    </chromedriver>
+    <settings>
+        <deep_scrape>False</deep_scrape>
+        <start_page>1</start_page>
+        <end_page>1</end_page>
+        <all_pages>False</all_pages>
+        <export>True</export>
+        <overwrite>True</overwrite>
+        <export_path>data/data.xml</export_path>
+        <print>True</print>
+    </settings>
+</config>

@@ -4,9 +4,5 @@
 chromedriver
 __pycache__/
 *.pyc
-*.ini
-*.txt
-*.json
-*.xml
-*.yml
 config
+data
