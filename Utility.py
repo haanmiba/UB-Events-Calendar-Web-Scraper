@@ -2,7 +2,7 @@ import sys
 import os
 import re
 import json
-import yaml
+# import yaml
 import xml.etree.ElementTree as ET
 from xml.etree.ElementTree import Element
 from xml.dom import minidom
